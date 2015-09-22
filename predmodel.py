@@ -12,14 +12,15 @@ import talib as ta
 import tushare as ts
 import MySQLdb
 import numpy as np
+import os
+
 from sqlalchemy import create_engine
 from multiprocessing.dummy import Pool as ThreadPool
-
-from ls_talib import get_data_sql
-from ls_talib.ls_talib import TSSB_TA
 from datetime import timedelta, datetime
 from dateutil.parser import parse
 from talib.abstract import Function
+from ls_talib import get_data_sql
+from ls_talib.ls_talib import TSSB_TA
 
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier
@@ -441,9 +442,11 @@ if __name__ == '__main__':
         ("STOCH", {}),
         ("WILLR", {})
         ]
+
     index_list = ['000001_SH_IX', '000300_SH_IX', '399001_SZ_IX', '399005_SZ_IX', '399006_SZ_IX']
     ts_index_list = ['sh', 'hs300', 'sz', 'zxb', 'cyb']
-    trade_cal = pd.read_csv('D:\song_code\MLPM\\trade_cal.csv', header=None, index_col=0)
+    pwd = os.getcwd()
+    trade_cal = pd.read_csv(os.path.join(pwd,'trade_cal.csv'), header=None, index_col=0)
     n = [60, 60, 60, 60, 60]
     dt_today = datetime.today()
     today = str(dt_today.date())
