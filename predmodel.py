@@ -158,7 +158,7 @@ class MLPreTrade(object):
                 ret1 = ts.get_hist_data(code, start=start_date1, end=end_date).ix[:, 0:5]
             else:
                 start_date1 = str((parse(start_date) - timedelta(self.look_back + 150)).date())
-                ret1 = ts.get_hist_data(self.security_id, start=start_date1, end=end_date).ix[:, 0:5]
+                ret1 = ts.get_hist_data(self.security_id, start=start_date1, end=end_date).sort_index().ix[:, 0:5]
             date_index = pd.DatetimeIndex(ret1.index)
             ret2 = pd.DataFrame(data=ret1.values, index=date_index, columns=ret1.columns)
             start = ret2.index.searchsorted(start_date)-self.look_back
@@ -456,5 +456,3 @@ if __name__ == '__main__':
     args = today_predict() # 3:15之后
     # write_to_sql(args, host='192.168.250.208', user='ada_user', passwd='ada_user')
     # write_to_sql(args, host='122.144.134.3', user='ada_user', passwd='ada_user')
-
-
