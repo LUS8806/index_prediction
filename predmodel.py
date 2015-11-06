@@ -33,7 +33,9 @@ from sklearn.feature_selection import RFECV
 from sklearn.cross_validation import StratifiedKFold
 from sklearn.pipeline import Pipeline
 
+
 class MLPreTrade(object):
+
     """
     this class is a machine learning model used to forecast the move direction of the security
     """
@@ -72,7 +74,8 @@ class MLPreTrade(object):
         self.ta_lags = ta_lags
         self.window_size = window_size
         self._ta_look_back = self._ta_look_back() if list_ta else 0
-        self.look_back = self._ta_look_back + self.window_size + self.ta_lags if look_back else 0
+        self.look_back = self._ta_look_back + \
+            self.window_size + self.ta_lags if look_back else 0
         self.security_type = self._security_type() if sid else sid
         if sid is not None and price_data is None:
             self.price_data = self.get_price_data()
@@ -140,10 +143,13 @@ class MLPreTrade(object):
         ret = []
         if data_source[0] == "mysql":
             if start_date == end_date:
-                ret = get_data_sql.GetPriceData(code, index=is_index).get_ndays_backward(end_date, self.look_back)
+                ret = get_data_sql.GetPriceData(
+                    code, index=is_index).get_ndays_backward(end_date, self.look_back)
             else:
-                ret1 = get_data_sql.GetPriceData(code, index=is_index).get_between_dates(start_date, end_date)
-                ret2 = get_data_sql.GetPriceData(code, index=is_index).get_ndays_backward(start_date, self.look_back)
+                ret1 = get_data_sql.GetPriceData(
+                    code, index=is_index).get_between_dates(start_date, end_date)
+                ret2 = get_data_sql.GetPriceData(
+                    code, index=is_index).get_ndays_backward(start_date, self.look_back)
                 ret = ret2.combine_first(ret1)
 
         elif data_source[0] == 'csv':
@@ -154,13 +160,18 @@ class MLPreTrade(object):
 
         elif data_source[0] == 'TuShare':
             if start_date == end_date:
-                start_date1 = str((parse(end) - timedelta(self.look_back + 150)).date())
-                ret1 = ts.get_hist_data(code, start=start_date1, end=end_date).ix[:, 0:5]
+                start_date1 = str(
+                    (parse(end) - timedelta(self.look_back + 150)).date())
+                ret1 = ts.get_hist_data(
+                    code, start=start_date1, end=end_date).ix[:, 0:5]
             else:
-                start_date1 = str((parse(start_date) - timedelta(self.look_back + 150)).date())
-                ret1 = ts.get_hist_data(self.security_id, start=start_date1, end=end_date).sort_index().ix[:, 0:5]
+                start_date1 = str(
+                    (parse(start_date) - timedelta(self.look_back + 150)).date())
+                ret1 = ts.get_hist_data(
+                    self.security_id, start=start_date1, end=end_date).sort_index().ix[:, 0:5]
             date_index = pd.DatetimeIndex(ret1.index)
-            ret2 = pd.DataFrame(data=ret1.values, index=date_index, columns=ret1.columns)
+            ret2 = pd.DataFrame(
+                data=ret1.values, index=date_index, columns=ret1.columns)
             start = ret2.index.searchsorted(start_date)-self.look_back
             ret = ret2.ix[start:, 0:5]
 
@@ -213,7 +224,8 @@ class MLPreTrade(object):
         if self.predict_type == 1:
             labels = df_price['close'].pct_change().shift(-1)  # 预测明收盘与今收盘的涨跌
         else:
-            labels = (df_price['close'] - df_price['open']).shift(-1)  # 预测明收盘与明开盘的涨跌
+            # 预测明收盘与明开盘的涨跌
+            labels = (df_price['close'] - df_price['open']).shift(-1)
 
         labels[labels >= 0] = 1
         labels[labels < 0] = 0
@@ -247,10 +259,12 @@ class MLPreTrade(object):
         model = models[clf]
         min_max_scaler = preprocessing.MinMaxScaler()
         pca = PCA(0.9)
-        pre = pd.DataFrame(index=ta_factors.index[n_s:], columns=['pre_label', 'pre_actual'])
+        pre = pd.DataFrame(
+            index=ta_factors.index[n_s:], columns=['pre_label', 'pre_actual'])
 
         for num in range(0, len(ta_factors)-n_s):
-            ta_factors_scaled = min_max_scaler.fit_transform(ta_factors.ix[num:num+n_s+1])
+            ta_factors_scaled = min_max_scaler.fit_transform(
+                ta_factors.ix[num:num+n_s+1])
             ta_factors_scaled_pca = pca.fit_transform(ta_factors_scaled)
             x_train = ta_factors_scaled_pca[:-1]
             x_test = ta_factors_scaled_pca[-1:]
@@ -278,18 +292,21 @@ class MLPreTrade(object):
         ta_factors, labels = self.set_factors_labels()
         svc = SVC(kernel='linear')
         min_max_scaler = preprocessing.MinMaxScaler()
-        pre = pd.DataFrame(index=ta_factors.index[self.window_size:], columns=['pre_label', 'pre_actual'])
+        pre = pd.DataFrame(
+            index=ta_factors.index[self.window_size:], columns=['pre_label', 'pre_actual'])
         Cs = range(10, 100, 10)
         gammas = range(5, 100, 5)
         n_s = self.window_size
         for num in range(0, len(ta_factors)-n_s):
-            ta_factors_scaled = min_max_scaler.fit_transform(ta_factors.ix[num:num+n_s+1])
+            ta_factors_scaled = min_max_scaler.fit_transform(
+                ta_factors.ix[num:num+n_s+1])
             x_train = ta_factors_scaled[:-1]
             x_test = ta_factors_scaled[-1:]
             y_train = labels[num:num+n_s]
             y_test = labels[num+n_s]
             # ta_factors_scaled_pca = pca.fit_transform(ta_factors_scaled)
-            rfecv = RFECV(estimator=svc, step=1, cv=StratifiedKFold(y_train, 2))
+            rfecv = RFECV(
+                estimator=svc, step=1, cv=StratifiedKFold(y_train, 2))
             clf = Pipeline([('feature_select', rfecv), ('svm', SVC())])
             # estimator = GridSearchCV(clf, dict(svm__C=Cs, svm__gamma=gammas))
             pre_model = clf.fit(x_train, y_train)
@@ -306,8 +323,10 @@ class MLPreTrade(object):
             # self.set_window_size(n)
             # self.maxn_factors, self.maxn_labels = self.set_factors_labels()
             start = self.maxn_factors.index.searchsorted(self.start_date)-n_s
-            factors, labels = self.maxn_factors.ix[start:, :], self.maxn_labels.ix[start:]
-            pre = self.machine_predict(factors=factors, ta_labels=labels, n_windows=n_s)
+            factors, labels = self.maxn_factors.ix[
+                start:, :], self.maxn_labels.ix[start:]
+            pre = self.machine_predict(
+                factors=factors, ta_labels=labels, n_windows=n_s)
             self.n_accu[n_s] = sum(pre['pre_acu']) / len(pre['pre_acu'])
         except Exception as e:
             self.n_accu[n_s] = 0
@@ -329,9 +348,6 @@ class MLPreTrade(object):
         return n_accu, best_n
 
 
-
-
-
 def best_ns():
     pre_lst = index_list
     i = 1
@@ -351,9 +367,11 @@ def best_ns():
         if i == 1:
             df_n_acc.to_csv("D:\song_code\MLPM\index_best_n1.csv")
         else:
-            df_n_acc.to_csv("D:\song_code\MLPM\index_best_n1.csv", header=False, mode='a')
+            df_n_acc.to_csv(
+                "D:\song_code\MLPM\index_best_n1.csv", header=False, mode='a')
 
         i += 1
+
 
 def today_predict():
     args = list()
@@ -370,20 +388,26 @@ def today_predict():
 
         pre = a.machine_predict().ix[-2:, 0:2]
         if i >= 40:
-            args.append((index_list[i], today, 0, int(pre['pre_actual'][0]),dt_today))
-            args.append((index_list[i], tom, int(pre['pre_label'][1]), None, dt_today))
+            args.append(
+                (index_list[i], today, 0, int(pre['pre_actual'][0]), dt_today))
+            args.append(
+                (index_list[i], tom, int(pre['pre_label'][1]), None, dt_today))
         else:
-            args.append((index_list[i], today, int(pre['pre_label'][0]), int(pre['pre_actual'][0]),dt_today))
-            args.append((index_list[i], tom, int(pre['pre_label'][1]), None, dt_today))
+            args.append((index_list[i], today, int(
+                pre['pre_label'][0]), int(pre['pre_actual'][0]), dt_today))
+            args.append(
+                (index_list[i], tom, int(pre['pre_label'][1]), None, dt_today))
     print args
     return args
+
 
 def write_to_sql(inputs, host=None, user=None, passwd=None):
     cnx = MySQLdb.connect(host=host, user=user, passwd=passwd, db='ada-fd')
     cursor = cnx.cursor()
 
     sql = '''insert into index_prediction (secu, dt, pred, fact, crt) values (%s,%s,%s,%s,%s)'''
-    sql_del = '''delete from index_prediction where dt in ('%s','%s') ''' % (today, tom)
+    sql_del = '''delete from index_prediction where dt in ('%s','%s') ''' % (
+        today, tom)
 
     try:
         cursor.execute(sql_del)
@@ -395,6 +419,7 @@ def write_to_sql(inputs, host=None, user=None, passwd=None):
         cursor.close()
         cnx.commit()
         cnx.close()
+
 
 def index_predict_hist():
     engine = create_engine('mysql://ada_user:ada_user@192.168.250.208/ada-fd')
@@ -419,40 +444,43 @@ def index_predict_hist():
             fact = pre['pre_actual'].tolist()
             fact[-1] = None
             secu = [index_list[i]]*len(pred)
-            sum_dict = {'dt': dt, 'secu': secu, 'pred': pred, 'fact': fact, 'crt': crt}
-            sum_df = pd.DataFrame(sum_dict, columns=['dt', 'secu', 'pred', 'fact', 'crt'])
+            sum_dict = {
+                'dt': dt, 'secu': secu, 'pred': pred, 'fact': fact, 'crt': crt}
+            sum_df = pd.DataFrame(
+                sum_dict, columns=['dt', 'secu', 'pred', 'fact', 'crt'])
             # sum_df.to_sql('index_prediction', engine, index=False, if_exists='append')
-            sum_df.to_sql('index_prediction', engine1, index=False, if_exists='append')
+            sum_df.to_sql(
+                'index_prediction', engine1, index=False, if_exists='append')
             # print sum_df
             print 'Success: %s' % index_list[i]
         except Exception as e:
             print("执行: %s 时出错：%s" % (index_list[i], e))
 
 
-
-
 if __name__ == '__main__':
 
     tas = [
         ("EMA", {'timeperiod': 7}),
-        ("EMA", {'timeperiod':50}),
+        ("EMA", {'timeperiod': 50}),
         ("MACD", {}),
-        ("RSI", {'timeperiod':14}),
+        ("RSI", {'timeperiod': 14}),
         ("MOM", {}),
         ("STOCH", {}),
         ("WILLR", {})
-        ]
+    ]
 
-    index_list = ['000001_SH_IX', '000300_SH_IX', '399001_SZ_IX', '399005_SZ_IX', '399006_SZ_IX']
+    index_list = ['000001_SH_IX', '000300_SH_IX',
+                  '399001_SZ_IX', '399005_SZ_IX', '399006_SZ_IX']
     ts_index_list = ['sh', 'hs300', 'sz', 'zxb', 'cyb']
     pwd = os.getcwd()
-    trade_cal = pd.read_csv(os.path.join(pwd,'trade_cal.csv'), header=None, index_col=0)
+    trade_cal = pd.read_csv(
+        os.path.join(pwd, 'trade_cal.csv'), header=None, index_col=0)
     n = [60, 60, 60, 60, 60]
     dt_today = datetime.today()
     today = str(dt_today.date())
     t_id = trade_cal.index.searchsorted(today)+1
     tom = trade_cal.index[t_id]
 
-    args = today_predict() # 3:15之后
+    args = today_predict()  # 3:15之后
     # write_to_sql(args, host='192.168.250.208', user='ada_user', passwd='ada_user')
     # write_to_sql(args, host='122.144.134.3', user='ada_user', passwd='ada_user')
